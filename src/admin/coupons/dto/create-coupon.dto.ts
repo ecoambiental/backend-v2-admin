@@ -1,4 +1,10 @@
-import { IsEnum, IsNumber, IsString, ValidateIf } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsNumber,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
 import {
   CouponDisplay,
   CouponType,
@@ -33,8 +39,9 @@ export class CreateCouponDto {
   @IsNumber()
   cupon_tiempo_duracion: number;
 
+  @ValidateIf((o) => o.cupon_tipo !== CouponType.General)
   @IsNumber()
-  servicio_id: number;
+  servicio_id?: number;
 
   @IsString()
   cupon_codigo: string;
@@ -42,6 +49,6 @@ export class CreateCouponDto {
   @IsString()
   cupon_descripcion: string;
 
-  @IsString()
+  @IsDateString()
   cupon_fecha_limite: string;
 }

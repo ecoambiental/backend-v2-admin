@@ -1,11 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Certificate, Coupon, Course } from 'ingepro-entities';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, In, Repository } from 'typeorm';
 import { CreateCouponDto, UpdateCouponDto } from './dto';
 import { FindCouponsDto } from './dto/find-coupons.dto';
 import { CertificateType } from 'ingepro-entities/dist/entities/enum/certificate.enum';
-import { CouponType } from 'ingepro-entities/dist/entities/enum/coupon.enum';
+import {
+  CouponDisplay,
+  CouponType,
+} from 'ingepro-entities/dist/entities/enum/coupon.enum';
+import { GetUserSelection } from 'src/auth/interfaces/jwt-payload.interfaces';
 @Injectable()
 export class CouponsService {
   constructor(
@@ -15,8 +24,42 @@ export class CouponsService {
     @InjectRepository(Course) private courseRepository: Repository<Course>,
   ) {}
 
-  create(createCouponDto: CreateCouponDto) {
-    return 'This action adds a new coupon';
+  async create(
+    tokenData: GetUserSelection<
+      'companyId' | 'userName' | 'userSurnames' | 'userId'
+    >,
+    createCouponDto: CreateCouponDto,
+  ) {
+    const { companyId, userId, userName, userSurnames } = tokenData;
+    const {
+      cupon_fecha_limite,
+      cupon_tipo,
+      cupon_visualizacion,
+      servicio_id,
+      cupon_monto_porcentaje,
+    } = createCouponDto;
+    await this.ensureServiceExists(companyId, cupon_tipo, servicio_id);
+    try {
+      const newCoupon = this.couponRepository.create({
+        ...createCouponDto,
+        cupon_capacidad_estudiantes: 0,
+        cupon_creador_usuario: `${userName} ${userSurnames}`,
+        cupon_fecha_creacion: new Date(),
+        cupon_fecha_limite: new Date(cupon_fecha_limite),
+        cupon_monto_porcentaje: Math.round(cupon_monto_porcentaje * 100) / 100,
+        cupon_visualizacion:
+          cupon_tipo === CouponType.Certificado
+            ? cupon_visualizacion
+            : CouponDisplay.Inactivo,
+        servicio_id: servicio_id ?? 0,
+        company: { institucion_id: companyId },
+        user: { usuario_id: userId },
+      });
+      return await this.couponRepository.save(newCoupon);
+    } catch (error) {
+      console.error('Error al guardar el cupón:', error);
+      throw new InternalServerErrorException('No se pudo guardar el cupón.');
+    }
   }
 
   async findAll(
@@ -46,8 +89,11 @@ export class CouponsService {
     const certificateIds = coupons
       .filter((coupon) => coupon.cupon_tipo === CouponType.Certificado)
       .map((c) => c.servicio_id);
-    const courses = await this.findCoursesByIds(courseIds);
-    const certificates = await this.findCourseCertificatesByIds(certificateIds);
+    const courses = await this.findCoursesByIds(companyId, courseIds);
+    const certificates = await this.findCourseCertificatesByIds(
+      companyId,
+      certificateIds,
+    );
     const courseMap = new Map(
       courses.map((course) => [course.curso_id, course]),
     );
@@ -76,7 +122,124 @@ export class CouponsService {
     return { total, coupons: enrichedCoupons };
   }
 
-  private async findCoursesByIds(courseIds: number[]) {
+  async findOne(companyId: number, id: number) {
+    const coupon = await this.couponRepository.findOne({
+      where: {
+        cupon_id: id,
+        company: { institucion_id: companyId },
+      },
+    });
+    if (!coupon) {
+      throw new NotFoundException(
+        `Cupón con ID ${id} no encontrado para la institución ${companyId}`,
+      );
+    }
+    if (coupon.cupon_tipo === CouponType.Curso) {
+      const courses = await this.findCoursesByIds(companyId, [
+        coupon.servicio_id,
+      ]);
+      const course = courses[0] || null;
+      return { ...coupon, curso: course };
+    } else if (coupon.cupon_tipo === CouponType.Certificado) {
+      const certificates = await this.findCourseCertificatesByIds(companyId, [
+        coupon.servicio_id,
+      ]);
+      const certificate = certificates[0] || null;
+      return { ...coupon, certificado: certificate };
+    } else {
+      return coupon;
+    }
+  }
+
+  async update(
+    companyId: number,
+    couponId: number,
+    updateCouponDto: UpdateCouponDto,
+  ) {
+    const existingCoupon = await this.couponRepository.findOne({
+      where: {
+        cupon_id: couponId,
+        company: { institucion_id: companyId },
+      },
+    });
+    if (!existingCoupon) {
+      throw new NotFoundException('Cupón no encontrado');
+    }
+    const tipoNuevo = updateCouponDto.cupon_tipo ?? existingCoupon.cupon_tipo;
+    const servicioNuevo =
+      updateCouponDto.servicio_id ?? existingCoupon.servicio_id;
+
+    const tipoCambiado = updateCouponDto.cupon_tipo !== undefined;
+    const servicioCambiado = updateCouponDto.servicio_id !== undefined;
+
+    if (updateCouponDto.cupon_tipo === CouponType.General) {
+      updateCouponDto.servicio_id = 0;
+    }
+    if (
+      (tipoCambiado || servicioCambiado) &&
+      tipoNuevo !== CouponType.General
+    ) {
+      await this.ensureServiceExists(companyId, tipoNuevo, servicioNuevo);
+    }
+    if (updateCouponDto.cupon_monto_porcentaje !== undefined) {
+      updateCouponDto.cupon_monto_porcentaje =
+        Math.round(updateCouponDto.cupon_monto_porcentaje * 100) / 100;
+    }
+
+    return await this.couponRepository.save({
+      ...existingCoupon,
+      ...updateCouponDto,
+    });
+  }
+
+  remove(id: number) {
+    return `This action removes a #${id} coupon`;
+  }
+
+  // TODO: Implementar lógica para certificados de especialización cuando se habilite su venta.
+  // Actualmente solo se soportan certificados de tipo curso.
+  private async ensureServiceExists(
+    companyId: number,
+    tipo: CouponType,
+    servicioId: number,
+  ) {
+    if (tipo === CouponType.General) {
+      return;
+    }
+    if (!servicioId) {
+      throw new BadRequestException('Debe especificar un ID de servicio');
+    }
+    if (tipo === CouponType.Curso) {
+      const course = await this.findCourse(companyId, servicioId);
+      if (!course)
+        throw new NotFoundException('El curso especificado no existe');
+    } else if (tipo === CouponType.Certificado) {
+      const certificate = await this.findCertificate(companyId, servicioId);
+      if (!certificate)
+        throw new NotFoundException('El certificado especificado no existe');
+    } else {
+      throw new BadRequestException('Tipo de servicio no válido');
+    }
+  }
+
+  private async findCourse(companyId: number, courseId: number) {
+    return await this.courseRepository.findOneBy({
+      curso_id: courseId,
+      company: { institucion_id: companyId },
+    });
+  }
+
+  // TODO: Implementar lógica para certificados de especialización cuando se habilite su venta.
+  // Actualmente solo se soportan certificados de tipo curso.
+  private async findCertificate(companyId: number, certificateId: number) {
+    return await this.certificateRepository.findOneBy({
+      certificado_id: certificateId,
+      tipo_servicio: CertificateType.Curso,
+      company: { institucion_id: companyId },
+    });
+  }
+
+  private async findCoursesByIds(companyId: number, courseIds: number[]) {
     return await this.courseRepository.find({
       select: {
         curso_id: true,
@@ -87,13 +250,19 @@ export class CouponsService {
         curso_precio_soles: true,
         curso_precio_dolar: true,
       },
-      where: { curso_id: In(courseIds) },
+      where: {
+        curso_id: In(courseIds),
+        company: { institucion_id: companyId },
+      },
     });
   }
 
   // TODO: Implementar lógica para certificados de especialización cuando se habilite su venta.
   // Actualmente solo se soportan certificados de tipo curso.
-  private async findCourseCertificatesByIds(certificateIds: number[]) {
+  private async findCourseCertificatesByIds(
+    companyId: number,
+    certificateIds: number[],
+  ) {
     return await this.certificateRepository.find({
       select: {
         certificado_id: true,
@@ -114,43 +283,9 @@ export class CouponsService {
       where: {
         certificado_id: In(certificateIds),
         tipo_servicio: CertificateType.Curso,
+        company: { institucion_id: companyId },
       },
       relations: ['typeCertificate', 'course'],
     });
-  }
-
-  async findOne(companyId: number, id: number) {
-    const coupon = await this.couponRepository.findOne({
-      where: {
-        cupon_id: id,
-        company: { institucion_id: companyId },
-      },
-    });
-    if (!coupon) {
-      throw new NotFoundException(
-        `Cupón con ID ${id} no encontrado para la institución ${companyId}`,
-      );
-    }
-    if (coupon.cupon_tipo === CouponType.Curso) {
-      const courses = await this.findCoursesByIds([coupon.servicio_id]);
-      const course = courses[0] || null;
-      return { ...coupon, curso: course };
-    } else if (coupon.cupon_tipo === CouponType.Certificado) {
-      const certificates = await this.findCourseCertificatesByIds([
-        coupon.servicio_id,
-      ]);
-      const certificate = certificates[0] || null;
-      return { ...coupon, certificado: certificate };
-    } else {
-      return coupon;
-    }
-  }
-
-  update(id: number, updateCouponDto: UpdateCouponDto) {
-    return `This action updates a #${id} coupon`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} coupon`;
   }
 }
