@@ -131,7 +131,19 @@ export class CouponsService {
         `Cupón con ID ${id} no encontrado para la institución ${companyId}`,
       );
     }
-    return coupon;
+    if (coupon.cupon_tipo === CouponType.Curso) {
+      const courses = await this.findCoursesByIds([coupon.servicio_id]);
+      const course = courses[0] || null;
+      return { ...coupon, curso: course };
+    } else if (coupon.cupon_tipo === CouponType.Certificado) {
+      const certificates = await this.findCourseCertificatesByIds([
+        coupon.servicio_id,
+      ]);
+      const certificate = certificates[0] || null;
+      return { ...coupon, certificado: certificate };
+    } else {
+      return coupon;
+    }
   }
 
   update(id: number, updateCouponDto: UpdateCouponDto) {

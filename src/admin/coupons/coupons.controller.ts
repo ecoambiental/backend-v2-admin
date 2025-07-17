@@ -53,7 +53,9 @@ export class CouponsController {
   @Roles(Rol.Administrador, Rol.SubAdministrador)
   @Get(':company/:couponId')
   findOne(
-    @Param('company', InstitucionValidationPipe) companyId: number,
+    @GetUser('companyId')
+    companyId: number,
+    @Param('company', InstitucionValidationPipe) _: string,
     @Param('couponId', ParseIntPipe) couponId: number,
   ) {
     return this.couponsService.findOne(companyId, couponId);
