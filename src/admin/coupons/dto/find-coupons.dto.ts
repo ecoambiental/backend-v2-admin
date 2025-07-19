@@ -7,6 +7,9 @@ import {
 } from 'ingepro-entities/dist/entities/enum/coupon.enum';
 
 export class FindCouponsDto {
+  @IsOptional()
+  search?: string;
+
   @IsEnum(CouponState)
   @IsOptional()
   @Type(() => Number)

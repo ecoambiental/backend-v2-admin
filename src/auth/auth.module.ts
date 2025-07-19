@@ -3,7 +3,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from 'ingepro-entities';
+import { Administrator, Teacher, Tutor, User } from 'ingepro-entities';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 
@@ -12,7 +12,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
   providers: [AuthService, JwtStrategy],
   exports: [JwtStrategy, PassportModule, JwtModule],
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, Administrator, Tutor, Teacher]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       useFactory: () => {

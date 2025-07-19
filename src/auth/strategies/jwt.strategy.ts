@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'ingepro-entities';
+import { Administrator, Teacher, Tutor, User } from 'ingepro-entities';
 import { FindOptionsSelect, Repository } from 'typeorm';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { JwtPayload, JwtValidate } from '../interfaces/jwt-payload.interfaces';
@@ -11,6 +11,10 @@ import { Rol } from 'ingepro-entities/dist/entities/enum/user.enum';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
+    @InjectRepository(Administrator)
+    private administratorRepository: Repository<Administrator>,
+    @InjectRepository(Tutor) private tutorRepository: Repository<Tutor>,
+    @InjectRepository(Teacher) private teacherRepository: Repository<Teacher>,
   ) {
     super({
       secretOrKey: process.env.JWT_SECRET,
@@ -18,19 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate({ idUsuario, idRol }: JwtPayload): Promise<JwtValidate> {
-    const relations = {
-      1: 'administrador',
-      2: 'tutor',
-      3: 'teacher',
-      5: 'administrador',
-      // 6: 'Contador',
-    };
-    const relation = relations[idRol];
-    if (!relation) {
-      throw new UnauthorizedException('Rol no permitido');
-    }
-
+  async validate({ idUsuario }: JwtPayload): Promise<JwtValidate> {
     const select: FindOptionsSelect<User> = {
       usuario_id: true,
       usuario_nombres: true,
@@ -40,29 +32,32 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       usuario_tipo: true,
       rol_id: true,
     };
-
-    select[relation] = {
-      ...(idRol === Rol.Administrador || idRol === Rol.SubAdministrador
-        ? { admin_id: true }
-        : idRol === Rol.Tutor
-          ? { tutor_id: true }
-          : idRol === Rol.Docente
-            ? { docente_id: true }
-            : {}),
-      company: {
-        institucion_id: true,
-        institucion_nombre: true,
-        institucion_prefijo: true,
-      },
-    };
     const user = await this.userRepository.findOne({
       select,
-      relations: [`${relation}`, `${relation}.company`],
-      where: { usuario_id: idUsuario, rol_id: idRol },
+      where: { usuario_id: idUsuario },
+      relations: ['administrador.company', 'teacher.company', 'tutor.company'],
     });
     if (!user) throw new UnauthorizedException('Usuario no encontrado');
-    const company = user[relation]?.company;
-    if (!company) throw new UnauthorizedException('Institución no encontrada');
+    let company: {
+      institucion_id: number;
+      institucion_nombre: string;
+      institucion_prefijo: string;
+    } | null = null;
+
+    if (
+      user.rol_id === Rol.Administrador ||
+      user.rol_id === Rol.SubAdministrador
+    ) {
+      company = user.administrador?.company || null;
+    } else if (user.rol_id === Rol.Docente) {
+      company = user.teacher?.company || null;
+    } else if (user.rol_id === Rol.Tutor) {
+      company = user.tutor?.company || null;
+    }
+
+    if (!company) {
+      throw new UnauthorizedException('Institución no encontrada');
+    }
     return {
       companyId: company.institucion_id,
       companyName: company.institucion_nombre,
@@ -75,5 +70,58 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       userSurnames: user.usuario_apellidos,
       rolId: user.rol_id,
     };
+  }
+
+  async getCompanyByRole(
+    role: Rol,
+    userId: number,
+  ): Promise<{
+    institucion_id: number;
+    institucion_nombre: string;
+    institucion_prefijo: string;
+  }> {
+    const commonSelect = {
+      institucion_id: true,
+      institucion_nombre: true,
+      institucion_prefijo: true,
+    };
+
+    const where = { user: { usuario_id: userId } };
+
+    if (role === Rol.Administrador || role === Rol.SubAdministrador) {
+      const admin = await this.administratorRepository.findOne({
+        select: { admin_id: true, company: commonSelect },
+        relations: ['company'],
+        where,
+      });
+      if (!admin?.company)
+        throw new UnauthorizedException('Institución no encontrada');
+      return admin.company;
+    }
+
+    if (role === Rol.Docente) {
+      const teacher = await this.teacherRepository.findOne({
+        select: { docente_id: true, company: commonSelect },
+        relations: ['company'],
+        where,
+      });
+      if (!teacher?.company)
+        throw new UnauthorizedException('Institución no encontrada');
+      return teacher.company;
+    }
+
+    if (role === Rol.Tutor) {
+      const tutor = await this.tutorRepository.findOne({
+        select: { tutor_id: true, company: commonSelect },
+        relations: ['company'],
+        where,
+      });
+      if (!tutor?.company)
+        throw new UnauthorizedException('Institución no encontrada');
+      return tutor.company;
+    }
+
+    // Rol no permitido
+    throw new UnauthorizedException('Rol de usuario no permitido');
   }
 }

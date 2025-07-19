@@ -9,10 +9,39 @@ import {
 } from 'class-validator';
 import {
   CouponDisplay,
+  CouponState,
   CouponType,
 } from 'ingepro-entities/dist/entities/enum/coupon.enum';
 
 export class UpdateCouponDto {
+  @IsOptional()
+  @IsString()
+  cupon_codigo?: string;
+
+  @IsOptional()
+  @IsString()
+  cupon_descripcion?: string;
+
+  @IsOptional()
+  @IsDateString()
+  cupon_fecha_limite?: string;
+
+  @IsOptional()
+  @IsNumber()
+  cupon_tiempo_duracion?: number;
+
+  @IsOptional()
+  @IsNumber()
+  cupon_estudiante_maxima?: number;
+
+  @IsOptional()
+  @IsNumber()
+  cupon_monto_porcentaje?: number;
+
+  @IsOptional()
+  @IsEnum(CouponState)
+  cupon_estado?: CouponState;
+
   @IsOptional()
   @IsEnum(CouponType)
   cupon_tipo?: CouponType;
@@ -29,21 +58,8 @@ export class UpdateCouponDto {
   servicio_id?: number;
 
   @IsOptional()
-  @IsEnum(CouponDisplay)
-  @ValidateIf((o) => o.cupon_tipo === CouponType.Certificado)
-  cupon_visualizacion?: CouponDisplay;
-
-  @IsOptional()
   @IsNumber()
-  cupon_estudiante_maxima?: number;
-
-  @IsOptional()
-  @IsNumber()
-  cupon_monto_maximo_dolares?: number;
-
-  @IsOptional()
-  @IsNumber()
-  cupon_monto_maximo_soles?: number;
+  cupon_monto_minimo_soles?: number;
 
   @IsOptional()
   @IsNumber()
@@ -51,25 +67,14 @@ export class UpdateCouponDto {
 
   @IsOptional()
   @IsNumber()
-  cupon_monto_minimo_soles?: number;
+  cupon_monto_maximo_soles?: number;
 
   @IsOptional()
   @IsNumber()
-  cupon_monto_porcentaje?: number;
+  cupon_monto_maximo_dolares?: number;
 
   @IsOptional()
-  @IsNumber()
-  cupon_tiempo_duracion?: number;
-
-  @IsOptional()
-  @IsString()
-  cupon_codigo?: string;
-
-  @IsOptional()
-  @IsString()
-  cupon_descripcion?: string;
-
-  @IsOptional()
-  @IsDateString()
-  cupon_fecha_limite?: string;
+  @IsEnum(CouponDisplay)
+  @ValidateIf((o) => o.cupon_tipo === CouponType.Certificado)
+  cupon_visualizacion?: CouponDisplay;
 }

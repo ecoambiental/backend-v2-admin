@@ -1,12 +1,13 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { Certificate, Coupon, Course } from 'ingepro-entities';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, Repository } from 'typeorm';
+import { FindOptionsWhere, In, Like, Not, Repository } from 'typeorm';
 import { CreateCouponDto, UpdateCouponDto } from './dto';
 import { FindCouponsDto } from './dto/find-coupons.dto';
 import { CertificateType } from 'ingepro-entities/dist/entities/enum/certificate.enum';
@@ -40,6 +41,15 @@ export class CouponsService {
     } = createCouponDto;
     await this.ensureServiceExists(companyId, cupon_tipo, servicio_id);
     try {
+      const existing = await this.couponRepository.findOne({
+        where: {
+          cupon_codigo: createCouponDto.cupon_codigo,
+          company: { institucion_id: tokenData.companyId },
+        },
+      });
+      if (existing) {
+        throw new ConflictException('Ya existe un cupón con ese código.');
+      }
       const newCoupon = this.couponRepository.create({
         ...createCouponDto,
         cupon_capacidad_estudiantes: 0,
@@ -64,52 +74,73 @@ export class CouponsService {
 
   async findAll(
     companyId: number,
-    { state, type, limit, page, downloadAll }: FindCouponsDto,
+    { search, state, type, limit, page, downloadAll }: FindCouponsDto,
   ) {
-    const where: FindOptionsWhere<Coupon> = {
+    const baseFilters = {
       ...(state !== undefined && { cupon_estado: state }),
       ...(type !== undefined && { cupon_tipo: type }),
       company: { institucion_id: companyId },
     };
+
+    const where: FindOptionsWhere<Coupon>[] = search
+      ? [
+          { ...baseFilters, cupon_codigo: Like(`%${search}%`) },
+          { ...baseFilters, cupon_descripcion: Like(`%${search}%`) },
+        ]
+      : [baseFilters];
     if (downloadAll) {
       const [coupons, total] = await this.couponRepository.findAndCount({
         where,
+        order: { cupon_id: 'DESC' },
       });
 
       return { total, coupons };
     }
+
     const [coupons, total] = await this.couponRepository.findAndCount({
       where,
       skip: (page - 1) * limit,
       take: limit,
+      order: { cupon_id: 'DESC' },
     });
+
     const courseIds = coupons
       .filter((coupon) => coupon.cupon_tipo === CouponType.Curso)
       .map((c) => c.servicio_id);
     const certificateIds = coupons
       .filter((coupon) => coupon.cupon_tipo === CouponType.Certificado)
       .map((c) => c.servicio_id);
-    const courses = await this.findCoursesByIds(companyId, courseIds);
-    const certificates = await this.findCourseCertificatesByIds(
-      companyId,
-      certificateIds,
-    );
-    const courseMap = new Map(
-      courses.map((course) => [course.curso_id, course]),
-    );
-    const certificateMap = new Map(
-      certificates.map((certificate) => [
-        certificate.certificado_id,
-        certificate,
-      ]),
-    );
+
+    const [courses, certificates] = await Promise.all([
+      courseIds.length > 0
+        ? this.findCoursesByIds(companyId, courseIds)
+        : Promise.resolve([] as Course[]),
+      certificateIds.length > 0
+        ? this.findCourseCertificatesByIds(companyId, certificateIds)
+        : Promise.resolve([] as Certificate[]),
+    ]);
+    const courseMap = courses.length
+      ? new Map(courses.map((course) => [course.curso_id, course]))
+      : new Map();
+
+    const certificateMap = certificates.length
+      ? new Map(
+          certificates.map((certificate) => [
+            certificate.certificado_id,
+            certificate,
+          ]),
+        )
+      : new Map();
     const enrichedCoupons = coupons.map((coupon) => {
-      if (coupon.cupon_tipo === CouponType.Curso) {
+      if (coupon.cupon_tipo === CouponType.Curso && courseMap.size > 0) {
         return {
           ...coupon,
           course: courseMap.get(coupon.servicio_id) || null,
         };
-      } else if (coupon.cupon_tipo === CouponType.Certificado) {
+      } else if (
+        coupon.cupon_tipo === CouponType.Certificado &&
+        certificateMap.size > 0
+      ) {
         return {
           ...coupon,
           certificate: certificateMap.get(coupon.servicio_id) || null,
@@ -164,6 +195,21 @@ export class CouponsService {
     });
     if (!existingCoupon) {
       throw new NotFoundException('Cupón no encontrado');
+    }
+    if (
+      updateCouponDto.cupon_codigo !== undefined &&
+      updateCouponDto.cupon_codigo !== existingCoupon.cupon_codigo
+    ) {
+      const duplicate = await this.couponRepository.findOne({
+        where: {
+          cupon_codigo: updateCouponDto.cupon_codigo,
+          company: { institucion_id: companyId },
+          cupon_id: Not(couponId), // excluye el cupón actual
+        },
+      });
+      if (duplicate) {
+        throw new ConflictException('Código en uso.');
+      }
     }
     const tipoNuevo = updateCouponDto.cupon_tipo ?? existingCoupon.cupon_tipo;
     const servicioNuevo =
