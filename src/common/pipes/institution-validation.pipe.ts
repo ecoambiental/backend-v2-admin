@@ -1,9 +1,8 @@
 import { PipeTransform, Injectable, BadRequestException } from '@nestjs/common';
-import { companyNameToId } from '../utils';
 import { ALLOWED_INSTITUTIONS } from '../constants/institution';
 
 @Injectable()
-export class InstitucionValidationPipe implements PipeTransform {
+export class InstitutionValidationPipe implements PipeTransform {
   transform(value: string): string {
     const normalized = value.trim().toLowerCase();
     if (!ALLOWED_INSTITUTIONS.includes(normalized)) {
