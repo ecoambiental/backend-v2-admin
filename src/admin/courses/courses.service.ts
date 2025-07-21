@@ -8,6 +8,10 @@ import {
   CourseState,
   CourseType,
 } from 'ingepro-entities/dist/entities/enum/course.enum';
+import {
+  CertificateState,
+  CertificateType,
+} from 'ingepro-entities/dist/entities/enum/certificate.enum';
 
 @Injectable()
 export class CoursesService {
@@ -37,20 +41,19 @@ export class CoursesService {
     const courses = await this.courseRepository.find({
       relations,
       select: courseSelects.forCoupon(),
-      where: [
-        {
-          ...(isForCertificates ? {} : { curso_tipo: CourseType.Pagado }),
-          ...(search ? { curso_nombre: Like(`%${search}%`) } : {}),
-          curso_estado: CourseState.Activo,
-          company: { institucion_id: companyId },
-        },
-        {
-          ...(isForCertificates ? {} : { curso_tipo: CourseType.Pagado }),
-          ...(search ? { curso_descripcion: Like(`%${search}%`) } : {}),
-          curso_estado: CourseState.Activo,
-          company: { institucion_id: companyId },
-        },
-      ],
+      where: {
+        ...(isForCertificates
+          ? {
+              certificates: {
+                certificado_estado: CertificateState.Activo,
+                tipo_servicio: CertificateType.Curso,
+              },
+            }
+          : { curso_tipo: CourseType.Pagado }),
+        ...(search ? { curso_nombre: Like(`%${search}%`) } : {}),
+        curso_estado: CourseState.Activo,
+        company: { institucion_id: companyId },
+      },
       skip: (page - 1) * limit,
       take: limit,
       order: { curso_id: 'DESC' },

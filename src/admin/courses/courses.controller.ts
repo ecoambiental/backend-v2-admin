@@ -18,7 +18,7 @@ export class CoursesController {
   //   return this.coursesService.findAll();
   // }
 
-  @Get('for-coupons')
+  @Get('for-coupon')
   findCoursesForCoupon(
     @Param('company', InstitutionValidationPipe) company: string,
     @Query() dto: FindCoursesForCouponDto,

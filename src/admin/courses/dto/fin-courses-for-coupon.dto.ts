@@ -10,5 +10,5 @@ export class FindCoursesForCouponDto extends PaginatorDto {
 
   @IsOptional()
   @Transform(({ value }) => ['true', '1', 1, true].includes(value))
-  isForCertificates: boolean = false;
+  isForCertificates?: boolean = false;
 }

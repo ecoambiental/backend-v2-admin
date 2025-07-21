@@ -4,14 +4,19 @@ import { Rol } from 'ingepro-entities/dist/entities/enum/user.enum';
 export interface JwtPayload {
   idUsuario: number;
   idRol: number;
+  rol_id: Rol;
+  companyId: number;
+  companyName: string;
+  companyPrefix: string;
+  userName: string;
+  userSurnames: string;
+  type: 'Normal' | 'Google';
 }
 
 export interface JwtValidate {
   companyId: number;
   companyName: string;
   companyPrefix: string;
-  password: string;
-  state: number;
   type: 'Normal' | 'Google';
   userId: number;
   userName: string;
