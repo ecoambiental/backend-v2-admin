@@ -1,0 +1,29 @@
+name: BuildDev
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build and push
+    steps:
+      - name: git-checkout
+        uses: actions/checkout@v3
+
+      - name: Deploy to Development Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: 195.35.16.125
+          username: root
+          password: oYxr|4/n#nu%7}'N*y34+5t
+          script: |
+            cd /home//ingenieropro-backv2admindev/htdocs/
+            git pull
+            source /root/.nvm/nvm.sh  # Carga NVM
+            nvm use 21.4.0
+            npm install
+            npm run build
+            pm2 restart --update-env backv2admindev
