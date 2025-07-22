@@ -381,8 +381,8 @@ export class CouponsService {
         curso_id: true,
         curso_nombre: true,
         curso_fecha_inicio: true,
-        curso_imagen: true,
-        curso_portada: true,
+        // curso_imagen: true,
+        // curso_portada: true,
         curso_precio_soles: true,
         curso_precio_dolar: true,
       },
@@ -406,14 +406,14 @@ export class CouponsService {
         certificado_costo_soles: true,
         typeCertificate: {
           tipocert_nombre: true,
-          tipocert_logo: true,
+          // tipocert_logo: true,
         },
         course: {
           curso_id: true,
           curso_nombre: true,
           curso_fecha_inicio: true,
-          curso_imagen: true,
-          curso_portada: true,
+          // curso_imagen: true,
+          // curso_portada: true,
         },
       },
       where: {
