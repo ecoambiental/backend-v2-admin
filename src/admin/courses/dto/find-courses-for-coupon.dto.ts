@@ -1,6 +1,5 @@
-import { IsArray, IsIn, IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { COURSE_RELATIONS, CourseRelation } from '../constants';
 import { PaginatorDto } from 'src/common/dto';
 
 export class FindCoursesForCouponDto extends PaginatorDto {

@@ -7,7 +7,14 @@ import {
 } from '@nestjs/common';
 import { Certificate, Coupon, Course } from 'ingepro-entities';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, Like, Not, Repository } from 'typeorm';
+import {
+  DataSource,
+  FindOptionsWhere,
+  In,
+  Like,
+  Not,
+  Repository,
+} from 'typeorm';
 import { CreateCouponDto, UpdateCouponDto } from './dto';
 import { FindCouponsDto } from './dto/find-coupons.dto';
 import { CertificateType } from 'ingepro-entities/dist/entities/enum/certificate.enum';
@@ -16,6 +23,7 @@ import {
   CouponType,
 } from 'ingepro-entities/dist/entities/enum/coupon.enum';
 import { GetUserSelection } from 'src/auth/interfaces/jwt-payload.interfaces';
+import { finalize } from 'rxjs';
 @Injectable()
 export class CouponsService {
   constructor(
@@ -23,52 +31,102 @@ export class CouponsService {
     private certificateRepository: Repository<Certificate>,
     @InjectRepository(Coupon) private couponRepository: Repository<Coupon>,
     @InjectRepository(Course) private courseRepository: Repository<Course>,
+    private dataSource: DataSource,
   ) {}
 
   async create(
     tokenData: GetUserSelection<
       'companyId' | 'userName' | 'userSurnames' | 'userId'
     >,
-    createCouponDto: CreateCouponDto,
+    dto: CreateCouponDto,
   ) {
     const { companyId, userId, userName, userSurnames } = tokenData;
+    const normalizedDto: CreateCouponDto = {
+      ...dto,
+      cupon_codigo: dto.cupon_codigo.trim().toUpperCase(),
+      cupon_descripcion: dto.cupon_descripcion.trim(),
+    };
     const {
-      cupon_fecha_limite,
       cupon_tipo,
+      servicio_id = 0,
+      cupon_codigo,
+      cupon_fecha_limite,
       cupon_visualizacion,
-      servicio_id,
-      cupon_monto_porcentaje,
-    } = createCouponDto;
+      cupon_monto_minimo_soles,
+      cupon_monto_maximo_soles,
+      cupon_monto_minimo_dolares,
+      cupon_monto_maximo_dolares,
+    } = normalizedDto;
     await this.ensureServiceExists(companyId, cupon_tipo, servicio_id);
+    const existing = await this.couponRepository.findOne({
+      where: {
+        cupon_codigo: cupon_codigo,
+        company: { institucion_id: tokenData.companyId },
+      },
+    });
+    if (existing) {
+      throw new ConflictException('Ya existe un cupón con ese código.');
+    }
+    const defaultMonto = (valor: number | undefined) => valor ?? 1;
+    const isGeneral = cupon_tipo === CouponType.General;
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
     try {
-      const existing = await this.couponRepository.findOne({
-        where: {
-          cupon_codigo: createCouponDto.cupon_codigo,
-          company: { institucion_id: tokenData.companyId },
-        },
-      });
-      if (existing) {
-        throw new ConflictException('Ya existe un cupón con ese código.');
-      }
       const newCoupon = this.couponRepository.create({
-        ...createCouponDto,
+        ...normalizedDto,
         cupon_capacidad_estudiantes: 0,
-        cupon_creador_usuario: `${userName} ${userSurnames}`,
+        cupon_creador_usuario: `${userName.trim()} ${userSurnames.trim()}`,
         cupon_fecha_creacion: new Date(),
         cupon_fecha_limite: new Date(cupon_fecha_limite),
-        cupon_monto_porcentaje: Math.round(cupon_monto_porcentaje * 100) / 100,
         cupon_visualizacion:
           cupon_tipo === CouponType.Certificado
             ? cupon_visualizacion
             : CouponDisplay.Inactivo,
-        servicio_id: servicio_id ?? 0,
+        servicio_id,
         company: { institucion_id: companyId },
+        cupon_monto_minimo_soles: isGeneral
+          ? defaultMonto(cupon_monto_minimo_soles)
+          : 1,
+        cupon_monto_maximo_soles: isGeneral
+          ? defaultMonto(cupon_monto_maximo_soles)
+          : 1,
+        cupon_monto_minimo_dolares: isGeneral
+          ? defaultMonto(cupon_monto_minimo_dolares)
+          : 1,
+        cupon_monto_maximo_dolares: isGeneral
+          ? defaultMonto(cupon_monto_maximo_dolares)
+          : 1,
         user: { usuario_id: userId },
       });
-      return await this.couponRepository.save(newCoupon);
+      const savedCoupon = await queryRunner.manager.save(newCoupon);
+      if (
+        cupon_tipo === CouponType.Certificado &&
+        cupon_visualizacion === CouponDisplay.Activo
+      ) {
+        await queryRunner.manager.update(
+          Coupon,
+          {
+            company: { institucion_id: companyId },
+            cupon_tipo: CouponType.Certificado,
+            servicio_id,
+            cupon_visualizacion: CouponDisplay.Activo,
+            cupon_id: Not(savedCoupon.cupon_id),
+          },
+          {
+            cupon_visualizacion: CouponDisplay.Inactivo,
+          },
+        );
+      }
+      await queryRunner.commitTransaction();
+      return savedCoupon;
     } catch (error) {
+      await queryRunner.rollbackTransaction();
       console.error('Error al guardar el cupón:', error);
       throw new InternalServerErrorException('No se pudo guardar el cupón.');
+    } finally {
+      await queryRunner.release();
     }
   }
 
@@ -231,11 +289,43 @@ export class CouponsService {
       updateCouponDto.cupon_monto_porcentaje =
         Math.round(updateCouponDto.cupon_monto_porcentaje * 100) / 100;
     }
-
-    return await this.couponRepository.save({
-      ...existingCoupon,
-      ...updateCouponDto,
-    });
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const updatedCoupon = await queryRunner.manager.save(
+        this.couponRepository.create({
+          ...existingCoupon,
+          ...updateCouponDto,
+        }),
+      );
+      if (
+        updatedCoupon.cupon_tipo === CouponType.Certificado &&
+        updatedCoupon.cupon_visualizacion === CouponDisplay.Activo
+      ) {
+        await queryRunner.manager.update(
+          Coupon,
+          {
+            company: { institucion_id: companyId },
+            cupon_tipo: CouponType.Certificado,
+            servicio_id: updatedCoupon.servicio_id,
+            cupon_visualizacion: CouponDisplay.Activo,
+            cupon_id: Not(updatedCoupon.cupon_id),
+          },
+          {
+            cupon_visualizacion: CouponDisplay.Inactivo,
+          },
+        );
+      }
+      await queryRunner.commitTransaction();
+      return updatedCoupon;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      console.error('Error al actualizar el cupón:', error);
+      throw new InternalServerErrorException('No se pudo actualizar el cupón.');
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   remove(id: number) {
@@ -333,5 +423,31 @@ export class CouponsService {
       },
       relations: ['typeCertificate', 'course'],
     });
+  }
+
+  async deactivateOtherActiveCouponsForCertificate(
+    institucion_id: number,
+    servicio_id: number,
+    excludeCouponId?: number,
+  ) {
+    try {
+      const whereClause: FindOptionsWhere<Coupon> = {
+        company: { institucion_id },
+        cupon_tipo: CouponType.Certificado,
+        servicio_id,
+        cupon_visualizacion: CouponDisplay.Activo,
+      };
+
+      if (excludeCouponId !== undefined) {
+        whereClause.cupon_id = Not(excludeCouponId);
+      }
+
+      const otrosActivos = await this.couponRepository.update(whereClause, {
+        cupon_visualizacion: CouponDisplay.Inactivo,
+      });
+      return otrosActivos;
+    } catch (error) {
+      throw new BadRequestException(error);
+    }
   }
 }

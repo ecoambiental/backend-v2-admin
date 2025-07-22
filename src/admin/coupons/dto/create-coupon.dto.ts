@@ -36,19 +36,23 @@ export class CreateCouponDto {
   @IsNumber()
   servicio_id?: number;
 
+  @ValidateIf((o) => o.cupon_tipo === CouponType.General)
   @IsNumber()
-  cupon_monto_minimo_soles: number;
+  cupon_monto_minimo_soles?: number;
 
+  @ValidateIf((o) => o.cupon_tipo === CouponType.General)
   @IsNumber()
-  cupon_monto_minimo_dolares: number;
+  cupon_monto_minimo_dolares?: number;
 
+  @ValidateIf((o) => o.cupon_tipo === CouponType.General)
   @IsNumber()
-  cupon_monto_maximo_soles: number;
+  cupon_monto_maximo_soles?: number;
 
+  @ValidateIf((o) => o.cupon_tipo === CouponType.General)
   @IsNumber()
-  cupon_monto_maximo_dolares: number;
+  cupon_monto_maximo_dolares?: number;
 
   @ValidateIf((o) => o.cupon_tipo === CouponType.Certificado)
   @IsEnum(CouponDisplay)
-  cupon_visualizacion: CouponDisplay;
+  cupon_visualizacion?: CouponDisplay = CouponDisplay.Inactivo;
 }

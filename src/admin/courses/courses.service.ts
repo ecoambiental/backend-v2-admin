@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { FindCoursesForCouponDto } from './dto/fin-courses-for-coupon.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { FindCoursesForCouponDto } from './dto/find-courses-for-coupon.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Course } from 'ingepro-entities';
 import { FindOptionsRelations, Like, Repository } from 'typeorm';
@@ -12,6 +12,7 @@ import {
   CertificateState,
   CertificateType,
 } from 'ingepro-entities/dist/entities/enum/certificate.enum';
+import { FindCourseForCouponDto } from './dto/find-course-for-coupon.dto';
 
 @Injectable()
 export class CoursesService {
@@ -59,6 +60,43 @@ export class CoursesService {
       order: { curso_id: 'DESC' },
     });
     return courses;
+  }
+
+  async findCourseForCoupon(
+    companyId: number,
+    courseId: number,
+    { isForCertificates }: FindCourseForCouponDto,
+  ) {
+    const relations: FindOptionsRelations<Course> = isForCertificates
+      ? {
+          certificates: {
+            typeCertificate: true,
+          },
+        }
+      : {};
+    const course = await this.courseRepository.findOne({
+      relations,
+      select: courseSelects.forCoupon(),
+      where: {
+        ...(isForCertificates
+          ? {
+              certificates: {
+                certificado_estado: CertificateState.Activo,
+                tipo_servicio: CertificateType.Curso,
+              },
+            }
+          : { curso_tipo: CourseType.Pagado }),
+        curso_estado: CourseState.Activo,
+        curso_id: courseId,
+        company: { institucion_id: companyId },
+      },
+    });
+    if (!course) {
+      throw new NotFoundException(
+        'Curso no encontrado o no pertenece a la empresa.',
+      );
+    }
+    return course;
   }
 
   // findOne(id: number) {

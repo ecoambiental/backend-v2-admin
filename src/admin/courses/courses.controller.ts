@@ -1,8 +1,8 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { CoursesService } from './courses.service';
 import { InstitutionValidationPipe } from 'src/common/pipes/institution-validation.pipe';
 import { companyNameToId } from '../../common/utils/company-name-to-id';
-import { FindCoursesForCouponDto } from './dto/fin-courses-for-coupon.dto';
+import { FindCourseForCouponDto, FindCoursesForCouponDto } from './dto';
 
 @Controller('courses/:company')
 export class CoursesController {
@@ -25,6 +25,16 @@ export class CoursesController {
   ) {
     const companyId = companyNameToId(company);
     return this.coursesService.findCoursesForCoupon(companyId, dto);
+  }
+
+  @Get('/:courseId/for-coupon')
+  findCourseForCoupon(
+    @Param('company', InstitutionValidationPipe) company: string,
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Query() dto: FindCourseForCouponDto,
+  ) {
+    const companyId = companyNameToId(company);
+    return this.coursesService.findCourseForCoupon(companyId, courseId, dto);
   }
 
   // @Get(':id')
