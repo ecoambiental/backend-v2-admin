@@ -20,10 +20,10 @@ import { FindCouponsDto } from './dto/find-coupons.dto';
 import { CertificateType } from 'ingepro-entities/dist/entities/enum/certificate.enum';
 import {
   CouponDisplay,
+  CouponState,
   CouponType,
 } from 'ingepro-entities/dist/entities/enum/coupon.enum';
 import { GetUserSelection } from 'src/auth/interfaces/jwt-payload.interfaces';
-import { finalize } from 'rxjs';
 @Injectable()
 export class CouponsService {
   constructor(
@@ -289,6 +289,9 @@ export class CouponsService {
       updateCouponDto.cupon_monto_porcentaje =
         Math.round(updateCouponDto.cupon_monto_porcentaje * 100) / 100;
     }
+    if (updateCouponDto.cupon_estado === CouponState.Inactivo) {
+      updateCouponDto.cupon_visualizacion = CouponDisplay.Inactivo;
+    }
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -299,6 +302,7 @@ export class CouponsService {
           ...updateCouponDto,
         }),
       );
+
       if (
         updatedCoupon.cupon_tipo === CouponType.Certificado &&
         updatedCoupon.cupon_visualizacion === CouponDisplay.Activo
@@ -316,6 +320,18 @@ export class CouponsService {
             cupon_visualizacion: CouponDisplay.Inactivo,
           },
         );
+      }
+      if (updatedCoupon.cupon_tipo === CouponType.Curso) {
+        const [course] = await this.findCoursesByIds(companyId, [
+          updatedCoupon.servicio_id,
+        ]);
+        updatedCoupon.course = course;
+      } else if (updatedCoupon.cupon_tipo === CouponType.Certificado) {
+        const [certificate] = await this.findCourseCertificatesByIds(
+          companyId,
+          [updatedCoupon.servicio_id],
+        );
+        updatedCoupon.certificate = certificate;
       }
       await queryRunner.commitTransaction();
       return updatedCoupon;
