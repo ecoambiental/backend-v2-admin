@@ -15,20 +15,19 @@ export class EvaluationService {
     evaluationId: number,
     studentId: number,
   ) {
-    const evaluation = await this.evaluationRepository.findOne({
-      relations: {
-        evaluationAttempt: true,
-      },
-      where: {
-        evaluacion_id: evaluationId,
-        evaluationAttempt: {
-          student: {
-            estudiante_id: studentId,
-            company: { institucion_id: companyId },
-          },
-        },
-      },
-    });
+    const evaluation = await this.evaluationRepository
+      .createQueryBuilder('evaluation')
+      .leftJoinAndSelect('evaluation.evaluationAttempt', 'attempt')
+      .leftJoinAndSelect('attempt.student', 'student')
+      .leftJoin('student.company', 'company')
+      .loadRelationCountAndMap(
+        'attempt.evaluationAttemptDetailCount',
+        'attempt.evaluationAttemptDetail',
+      )
+      .where('evaluation.evaluacion_id = :evaluationId', { evaluationId })
+      .andWhere('student.estudiante_id = :studentId', { studentId })
+      .andWhere('company.institucion_id = :companyId', { companyId })
+      .getOne();
     if (!evaluation)
       throw new NotFoundException(
         `No se encontraron intentos de evaluación para el estudiante con ID ${studentId} en la evaluación ${evaluationId} dentro de la institución ${companyId}.`,
