@@ -14,7 +14,7 @@ import { companyNameToId } from 'src/common/utils';
 
 @ApiBearerAuth()
 @UseGuards(AuthGuard(), SameCompanyGuard)
-@Controller('evaluation-attempts/:company')
+@Controller(':company/evaluation-attempts')
 export class EvaluationAttemptsController {
   constructor(
     private readonly evaluationAttemptsService: EvaluationAttemptsService,

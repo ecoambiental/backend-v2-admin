@@ -26,13 +26,6 @@ export class EvaluationAttemptsService {
         envio_hora_inicio: true,
         envio_hora_fin: true,
         envio_hora_envio: true,
-        evaluationAttemptDetail: {
-          detalle_evaluacion_respuesta_correcta: true,
-          detalle_evaluacion_respuesta_elegida: true,
-          detalle_evaluacion_estado: true,
-          detalle_evaluacion_puntuacion: true,
-          question: true,
-        },
       },
       where: {
         entrega_evaluacion_id: evaluationAttemptId,
