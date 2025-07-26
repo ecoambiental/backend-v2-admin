@@ -20,21 +20,21 @@ export class EvaluationAttemptsController {
     private readonly evaluationAttemptsService: EvaluationAttemptsService,
   ) {}
 
-  @Get('attempt/:attemptId/student/:studentId')
+  @Get('evaluations/:evaluationId/students/:studentId')
   findByEvaluationAndStudent(
     @Param('company', CompanyValidationPipe) company: string,
-    @Param('attemptId', ParseIntPipe) attemptId: number,
+    @Param('evaluationId', ParseIntPipe) evaluationId: number,
     @Param('studentId', ParseIntPipe) studentId: number,
   ) {
     const companyId = companyNameToId(company);
     return this.evaluationAttemptsService.findByEvaluationAndStudent(
       companyId,
-      attemptId,
+      evaluationId,
       studentId,
     );
   }
 
-  @Get('attempt/:attemptId')
+  @Get(':attemptId')
   findOne(
     @Param('company', CompanyValidationPipe) company: string,
     @Param('attemptId', ParseIntPipe) attemptId: number,
