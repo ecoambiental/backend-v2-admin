@@ -18,7 +18,7 @@ import { companyNameToId } from 'src/common/utils';
 export class EvaluationController {
   constructor(private readonly evaluationService: EvaluationService) {}
 
-  @Get(':evaluationId/student/:studentId')
+  @Get(':evaluationId/students/:studentId')
   findEvaluationAttemptsByStudent(
     @Param('company', CompanyValidationPipe) company: string,
     @Param('evaluationId', ParseIntPipe) evaluationId: number,
