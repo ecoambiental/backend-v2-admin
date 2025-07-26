@@ -10,34 +10,9 @@ export class EvaluationAttemptsService {
     private evaluationAttemptRepository: Repository<EvaluationAttempt>,
   ) {}
 
-  findByEvaluationAndStudent(
-    companyId: number,
-    evaluationId: number,
-    studentId: number,
-  ) {
-    return this.evaluationAttemptRepository.find({
-      select: {
-        entrega_evaluacion_id: true,
-        envio_estado: true,
-        envio_hora_envio: true,
-        envio_hora_fin: true,
-        envio_hora_inicio: true,
-        envio_nota: true,
-      },
-      where: {
-        evaluation: { evaluacion_id: evaluationId },
-        student: {
-          estudiante_id: studentId,
-          company: { institucion_id: companyId },
-        },
-      },
-    });
-  }
-
   async findOne(companyId: number, evaluationAttemptId: number) {
     const evaluationAttempt = await this.evaluationAttemptRepository.findOne({
       relations: {
-        evaluation: true,
         evaluationAttemptDetail: {
           question: {
             alternative: true,
@@ -51,10 +26,6 @@ export class EvaluationAttemptsService {
         envio_hora_inicio: true,
         envio_hora_fin: true,
         envio_hora_envio: true,
-        evaluation: {
-          evaluacion_id: true,
-          evaluacion_descripcion: true,
-        },
         evaluationAttemptDetail: {
           detalle_evaluacion_respuesta_correcta: true,
           detalle_evaluacion_respuesta_elegida: true,

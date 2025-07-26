@@ -20,20 +20,6 @@ export class EvaluationAttemptsController {
     private readonly evaluationAttemptsService: EvaluationAttemptsService,
   ) {}
 
-  @Get('evaluations/:evaluationId/students/:studentId')
-  findByEvaluationAndStudent(
-    @Param('company', CompanyValidationPipe) company: string,
-    @Param('evaluationId', ParseIntPipe) evaluationId: number,
-    @Param('studentId', ParseIntPipe) studentId: number,
-  ) {
-    const companyId = companyNameToId(company);
-    return this.evaluationAttemptsService.findByEvaluationAndStudent(
-      companyId,
-      evaluationId,
-      studentId,
-    );
-  }
-
   @Get(':attemptId')
   findOne(
     @Param('company', CompanyValidationPipe) company: string,
