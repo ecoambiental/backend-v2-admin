@@ -39,7 +39,7 @@ export class AuthModule {
     const ghamec = this.jwtService.sign({
       idUsuario: 237,
       rol_id: 5,
-      companyId: 1,
+      companyId: 2,
       companyName: 'Ghamec',
       companyPrefix: 'GHA',
       userName: 'Sub admin Ghamec',

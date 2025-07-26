@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { CouponsModule } from './admin/coupons/coupons.module';
 import { AuthModule } from './auth/auth.module';
 import { CoursesModule } from './admin/courses/courses.module';
+import { EvaluationsModule } from './admin/evaluations/evaluations.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { CoursesModule } from './admin/courses/courses.module';
     AuthModule,
     CouponsModule,
     CoursesModule,
+    EvaluationsModule,
   ],
   controllers: [],
   providers: [],

@@ -15,7 +15,7 @@ import { CouponsService } from './coupons.service';
 import { CreateCouponDto, FindCouponsDto, UpdateCouponDto } from './dto';
 import { ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
-import { InstitutionValidationPipe } from 'src/common/pipes/institution-validation.pipe';
+import { CompanyValidationPipe } from 'src/common/pipes/company-validation.pipe';
 import { Rol } from 'ingepro-entities/dist/entities/enum/user.enum';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard, SameCompanyGuard } from 'src/common/guards';
@@ -35,7 +35,7 @@ export class CouponsController {
     tokenData: GetUserSelection<
       'companyId' | 'userName' | 'userSurnames' | 'userId'
     >,
-    @Param('company', InstitutionValidationPipe) _: string,
+    @Param('company', CompanyValidationPipe) _: string,
     @Body() createCouponDto: CreateCouponDto,
   ) {
     return this.couponsService.create(tokenData, createCouponDto);
@@ -45,7 +45,7 @@ export class CouponsController {
   findAll(
     @GetUser('companyId')
     companyId: number,
-    @Param('company', InstitutionValidationPipe) _: string,
+    @Param('company', CompanyValidationPipe) _: string,
     @Query()
     findCouponsDto: FindCouponsDto,
   ) {
@@ -56,7 +56,7 @@ export class CouponsController {
   findOne(
     @GetUser('companyId')
     companyId: number,
-    @Param('company', InstitutionValidationPipe) _: string,
+    @Param('company', CompanyValidationPipe) _: string,
     @Param('couponId', ParseIntPipe) couponId: number,
   ) {
     return this.couponsService.findOne(companyId, couponId);
@@ -66,7 +66,7 @@ export class CouponsController {
   update(
     @GetUser('companyId')
     companyId: number,
-    @Param('company', InstitutionValidationPipe) _: string,
+    @Param('company', CompanyValidationPipe) _: string,
     @Param('couponId', ParseIntPipe) id: number,
     @Body() updateCouponDto: UpdateCouponDto,
   ) {

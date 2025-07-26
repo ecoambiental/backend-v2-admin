@@ -21,7 +21,7 @@ export class SameCompanyGuard implements CanActivate {
     if (!paramCompanyId) {
       throw new ForbiddenException('Institución no proporcionada en ruta');
     }
-
+    console.log(userCompanyId, paramCompanyId);
     if (userCompanyId !== paramCompanyId) {
       throw new ForbiddenException(
         'No tienes permiso para acceder a esta institución',
