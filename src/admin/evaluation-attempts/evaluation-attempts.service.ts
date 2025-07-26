@@ -1,21 +1,42 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Evaluation, EvaluationAttempt } from 'ingepro-entities';
+import { EvaluationAttempt } from 'ingepro-entities';
 import { Repository } from 'typeorm';
 
 @Injectable()
-export class EvaluationsService {
+export class EvaluationAttemptsService {
   constructor(
     @InjectRepository(EvaluationAttempt)
     private evaluationAttemptRepository: Repository<EvaluationAttempt>,
   ) {}
 
+  findByEvaluationAndStudent(
+    companyId: number,
+    evaluationId: number,
+    studentId: number,
+  ) {
+    return this.evaluationAttemptRepository.find({
+      select: {
+        entrega_evaluacion_id: true,
+        envio_estado: true,
+        envio_hora_envio: true,
+        envio_hora_fin: true,
+        envio_hora_inicio: true,
+        envio_nota: true,
+      },
+      where: {
+        evaluation: { evaluacion_id: evaluationId },
+        student: {
+          estudiante_id: studentId,
+          company: { institucion_id: companyId },
+        },
+      },
+    });
+  }
+
   async findOne(companyId: number, evaluationAttemptId: number) {
     const evaluationAttempt = await this.evaluationAttemptRepository.findOne({
       relations: {
-        student: {
-          user: true,
-        },
         evaluation: true,
         evaluationAttemptDetail: {
           question: {
@@ -30,14 +51,6 @@ export class EvaluationsService {
         envio_hora_inicio: true,
         envio_hora_fin: true,
         envio_hora_envio: true,
-        student: {
-          estudiante_id: true,
-          user: {
-            usuario_id: true,
-            usuario_nombres: true,
-            usuario_apellidos: true,
-          },
-        },
         evaluation: {
           evaluacion_id: true,
           evaluacion_descripcion: true,
