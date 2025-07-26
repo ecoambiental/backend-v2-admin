@@ -12,8 +12,8 @@ import { SameCompanyGuard } from 'src/common/guards';
 import { CompanyValidationPipe } from 'src/common/pipes/company-validation.pipe';
 import { companyNameToId } from 'src/common/utils';
 
-// @ApiBearerAuth()
-// @UseGuards(AuthGuard(), SameCompanyGuard)
+@ApiBearerAuth()
+@UseGuards(AuthGuard(), SameCompanyGuard)
 @Controller(':company/evaluation')
 export class EvaluationController {
   constructor(private readonly evaluationService: EvaluationService) {}
