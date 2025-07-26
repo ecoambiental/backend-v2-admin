@@ -6,6 +6,7 @@ import { CouponsModule } from './admin/coupons/coupons.module';
 import { AuthModule } from './auth/auth.module';
 import { CoursesModule } from './admin/courses/courses.module';
 import { EvaluationAttemptsModule } from './admin/evaluation-attempts/evaluation-attempts.module';
+import { EvaluationModule } from './admin/evaluation/evaluation.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { EvaluationAttemptsModule } from './admin/evaluation-attempts/evaluation
     CouponsModule,
     CoursesModule,
     EvaluationAttemptsModule,
+    EvaluationModule,
   ],
   controllers: [],
   providers: [],
