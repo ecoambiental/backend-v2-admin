@@ -26,6 +26,7 @@ export class EvaluationService {
       .andWhere('student.estudiante_id = :studentId', { studentId })
       .andWhere('company.institucion_id = :companyId', { companyId })
       .getOne();
+
     const counts = await this.evaluationAttemptDetailRepository
       .createQueryBuilder('detail')
       .select('detail.entrega_evaluacion_id', 'attemptId')
