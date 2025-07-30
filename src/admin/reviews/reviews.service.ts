@@ -143,53 +143,53 @@ export class ReviewsService {
     downloadAll = false,
   ) {
     const query = this.enrollmentRepository
-      .createQueryBuilder('matricula')
-      .leftJoinAndSelect('matricula.student', 'student')
-      .leftJoinAndSelect('student.user', 'user')
-      .where('matricula.matricula_valoracion_curso IS NOT NULL')
-      .andWhere('matricula.course = :courseId', { courseId })
-      .andWhere('course.company = :companyId', { companyId })
+      .createQueryBuilder('e')
+      .leftJoinAndSelect('e.student', 's')
+      .leftJoinAndSelect('s.user', 'u')
+      .leftJoin('e.course', 'c')
+      .leftJoin('c.company', 'co')
+      .where('e.matricula_valoracion_curso IS NOT NULL')
+      .andWhere('e.course.curso_id = :courseId', { courseId })
+      .andWhere('co.institucion_id = :companyId', {
+        companyId,
+      })
       .select([
-        'matricula.matricula_id',
-        'matricula.matricula_valoracion_comentario',
-        'matricula.matricula_valoracion_curso',
-        'matricula.matricula_valoracion_docente',
-        'matricula.matricula_valoracion_tutor',
-        'student.estudiante_id',
-        'user.usuario_id',
-        'user.usuario_apellidos',
-        'user.usuario_correo',
-        'user.usuario_telefono',
-        'user.usuario_nombres',
-        'user.usuario_carnet_identidad',
+        'e.matricula_id',
+        'e.matricula_valoracion_comentario',
+        'e.matricula_valoracion_curso',
+        'e.matricula_valoracion_docente',
+        'e.matricula_valoracion_tutor',
+        's.estudiante_id',
+        'u.usuario_id',
+        'u.usuario_apellidos',
+        'u.usuario_correo',
+        'u.usuario_telefono',
+        'u.usuario_nombres',
+        'u.usuario_carnet_identidad',
       ]);
 
     if (search) {
       query.andWhere(
-        `CONCAT_WS(' ', user.usuario_nombres, user.usuario_apellidos) LIKE :search`,
+        `CONCAT_WS(' ', u.usuario_nombres, u.usuario_apellidos) LIKE :search`,
         { search: `%${search}%` },
       );
     }
-
     if (courseRating) {
-      query.andWhere(
-        'matricula.matricula_valoracion_curso = :matricula_valoracion_curso',
-        { courseRating },
-      );
+      query.andWhere('e.matricula_valoracion_curso = :courseRating', {
+        courseRating,
+      });
     }
 
     if (teacherRating) {
-      query.andWhere(
-        'matricula.matricula_valoracion_docente = :matricula_valoracion_docente',
-        { teacherRating },
-      );
+      query.andWhere('e.matricula_valoracion_docente = :teacherRating', {
+        teacherRating,
+      });
     }
 
     if (tutorRating) {
-      query.andWhere(
-        'matricula.matricula_valoracion_tutor = :matricula_valoracion_tutor',
-        { tutorRating },
-      );
+      query.andWhere('e.matricula_valoracion_tutor = :tutorRating', {
+        tutorRating,
+      });
     }
 
     // Paginación solo si no es descarga total
