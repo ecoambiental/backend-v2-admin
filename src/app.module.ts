@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { CoursesModule } from './admin/courses/courses.module';
 import { EvaluationAttemptsModule } from './admin/evaluation-attempts/evaluation-attempts.module';
 import { EvaluationModule } from './admin/evaluation/evaluation.module';
+import { ReviewsModule } from './admin/reviews/reviews.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { EvaluationModule } from './admin/evaluation/evaluation.module';
     CoursesModule,
     EvaluationAttemptsModule,
     EvaluationModule,
+    ReviewsModule,
   ],
   controllers: [],
   providers: [],

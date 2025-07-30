@@ -3,6 +3,6 @@ import { IsOptional } from 'class-validator';
 
 export class DownloadDto {
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === '1')
+  @Transform(({ value }) => ['true', '1', 1, true].includes(value))
   downloadAll?: boolean = false;
 }
