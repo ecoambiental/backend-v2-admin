@@ -134,9 +134,9 @@ export class ReviewsService {
     courseId: number,
     {
       limit,
-      matricula_valoracion_curso,
-      matricula_valoracion_docente,
-      matricula_valoracion_tutor,
+      courseRating,
+      teacherRating,
+      tutorRating,
       page,
       search,
     }: FindCourseReviewDto,
@@ -171,24 +171,24 @@ export class ReviewsService {
       );
     }
 
-    if (matricula_valoracion_curso) {
+    if (courseRating) {
       query.andWhere(
         'matricula.matricula_valoracion_curso = :matricula_valoracion_curso',
-        { matricula_valoracion_curso },
+        { courseRating },
       );
     }
 
-    if (matricula_valoracion_docente) {
+    if (teacherRating) {
       query.andWhere(
         'matricula.matricula_valoracion_docente = :matricula_valoracion_docente',
-        { matricula_valoracion_docente },
+        { teacherRating },
       );
     }
 
-    if (matricula_valoracion_tutor) {
+    if (tutorRating) {
       query.andWhere(
         'matricula.matricula_valoracion_tutor = :matricula_valoracion_tutor',
-        { matricula_valoracion_tutor },
+        { tutorRating },
       );
     }
 

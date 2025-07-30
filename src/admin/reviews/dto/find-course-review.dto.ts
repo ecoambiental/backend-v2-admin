@@ -9,15 +9,15 @@ export class FindCourseReviewDto extends PaginatorDto {
   @IsOptional()
   @IsString()
   @IsIn(['1', '2', '3', '4', '5'])
-  matricula_valoracion_curso?: string;
+  courseRating?: string;
 
   @IsOptional()
   @IsString()
   @IsIn(['1', '2', '3', '4', '5'])
-  matricula_valoracion_docente?: string;
+  teacherRating?: string;
 
   @IsOptional()
   @IsString()
   @IsIn(['1', '2', '3', '4', '5'])
-  matricula_valoracion_tutor?: string;
+  tutorRating?: string;
 }
