@@ -170,7 +170,12 @@ export class ReviewsService {
 
     if (search) {
       query.andWhere(
-        `CONCAT_WS(' ', u.usuario_nombres, u.usuario_apellidos) LIKE :search`,
+        `(
+          CONCAT_WS(' ', u.usuario_nombres, u.usuario_apellidos) LIKE :search
+          OR u.usuario_correo LIKE :search 
+          OR u.usuario_telefono LIKE :search
+          OR u.usuario_carnet_identidad LIKE :search
+        )`,
         { search: `%${search}%` },
       );
     }
