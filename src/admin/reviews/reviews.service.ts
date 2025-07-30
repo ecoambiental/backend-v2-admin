@@ -19,24 +19,24 @@ export class ReviewsService {
     dto: FindCoursesReviewDto,
     downloadAll = false,
   ) {
-    const { courseModality, courseState, courseType, limit, page } = dto;
+    const { modality, state, type, limit, page } = dto;
     const baseQuery = this.courseRepository
       .createQueryBuilder('c')
       .select('c.curso_id', 'curso_id')
       .addSelect('c.curso_nombre', 'curso_nombre')
       .addSelect('c.curso_fecha_inicio', 'curso_fecha_inicio')
       .where('c.company.institucion_id = :companyId', { companyId });
-    if (courseModality)
-      baseQuery.andWhere('c.curso_modalidad = :courseModality', {
-        courseModality,
+    if (modality)
+      baseQuery.andWhere('c.curso_modalidad = :modality', {
+        modality,
       });
-    if (courseState)
-      baseQuery.andWhere('c.curso_estado = :courseState', {
-        courseState,
+    if (state)
+      baseQuery.andWhere('c.curso_estado = :state', {
+        state,
       });
-    if (courseType)
-      baseQuery.andWhere('c.curso_tipo = :courseType', {
-        courseType,
+    if (type)
+      baseQuery.andWhere('c.curso_tipo = :type', {
+        type,
       });
     const courses = await baseQuery
       .leftJoin('c.enrollment', 'e')

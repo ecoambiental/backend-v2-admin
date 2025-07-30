@@ -9,13 +9,13 @@ import { PaginatorDto } from 'src/common/dto';
 export class FindCoursesReviewDto extends PaginatorDto {
   @IsOptional()
   @IsString()
-  courseState?: CourseState;
+  state?: CourseState;
 
   @IsOptional()
   @IsString()
-  courseType?: CourseType;
+  type?: CourseType;
 
   @IsOptional()
   @IsString()
-  courseModality?: CourseModality;
+  modality?: CourseModality;
 }
