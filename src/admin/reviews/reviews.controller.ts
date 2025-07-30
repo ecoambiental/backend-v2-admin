@@ -81,15 +81,17 @@ export class ReviewsController {
     @Res() res: Response,
   ) {
     const companyId = companyNameToId(company);
-    const { buffer, courseName } =
-      await this.reviewsService.exportCourseReviews(companyId, courseId);
+    const buffer = await this.reviewsService.exportCourseReviews(
+      companyId,
+      courseId,
+    );
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename=${courseName}.xlsx; filename*=UTF-8''${encodeURIComponent(courseName)}.xlsx`,
+      `attachment; filename=curso-${courseId}.xlsx`,
     );
     res.send(buffer);
   }

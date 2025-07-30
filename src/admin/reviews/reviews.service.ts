@@ -368,6 +368,6 @@ export class ReviewsService {
 
     // 📦 Exportar buffer
     const buffer = await workbook.xlsx.writeBuffer();
-    return { buffer, courseName: summary.curso_nombre };
+    return buffer;
   }
 }
