@@ -19,7 +19,7 @@ export class ReviewsService {
     dto: FindCoursesReviewDto,
     downloadAll = false,
   ) {
-    const { modality, state, type, limit, page } = dto;
+    const { limit, modality, page, search, state, type } = dto;
     const baseQuery = this.courseRepository
       .createQueryBuilder('c')
       .select('c.curso_id', 'curso_id')
@@ -38,6 +38,14 @@ export class ReviewsService {
       baseQuery.andWhere('c.curso_tipo = :type', {
         type,
       });
+    if (search) {
+      baseQuery.andWhere(
+        '(c.curso_nombre LIKE :search OR c.curso_descripcion LIKE :search)',
+        {
+          search: `%${search}%`,
+        },
+      );
+    }
     const courses = await baseQuery
       .leftJoin('c.enrollment', 'e')
       .addSelect(

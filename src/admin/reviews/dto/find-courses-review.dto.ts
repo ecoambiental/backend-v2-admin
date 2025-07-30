@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 import {
   CourseModality,
   CourseState,
@@ -9,13 +9,17 @@ import { PaginatorDto } from 'src/common/dto';
 export class FindCoursesReviewDto extends PaginatorDto {
   @IsOptional()
   @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsEnum(CourseState)
   state?: CourseState;
 
   @IsOptional()
-  @IsString()
+  @IsEnum(CourseType)
   type?: CourseType;
 
   @IsOptional()
-  @IsString()
+  @IsEnum(CourseModality)
   modality?: CourseModality;
 }
