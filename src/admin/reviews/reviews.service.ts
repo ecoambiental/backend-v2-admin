@@ -132,38 +132,71 @@ export class ReviewsService {
   async findCourseReviews(
     companyId: number,
     courseId: number,
-    { limit, page }: FindCourseReviewDto,
+    {
+      limit,
+      matricula_valoracion_curso,
+      matricula_valoracion_docente,
+      matricula_valoracion_tutor,
+      page,
+      search,
+    }: FindCourseReviewDto,
     downloadAll = false,
   ) {
-    const [reviews, total] = await this.enrollmentRepository.findAndCount({
-      relations: { student: { user: true } },
-      select: {
-        matricula_id: true,
-        matricula_valoracion_comentario: true,
-        matricula_valoracion_curso: true,
-        matricula_valoracion_docente: true,
-        matricula_valoracion_tutor: true,
-        student: {
-          estudiante_id: true,
-          user: {
-            usuario_id: true,
-            usuario_apellidos: true,
-            usuario_correo: true,
-            usuario_telefono: true,
-            usuario_nombres: true,
-            usuario_carnet_identidad: true,
-          },
-        },
-      },
-      where: {
-        matricula_valoracion_curso: Not(IsNull()),
-        course: {
-          curso_id: courseId,
-          company: { institucion_id: companyId },
-        },
-      },
-      ...(downloadAll ? {} : { skip: (page - 1) * limit, take: limit }),
-    });
+    const query = this.enrollmentRepository
+      .createQueryBuilder('matricula')
+      .leftJoinAndSelect('matricula.student', 'student')
+      .leftJoinAndSelect('student.user', 'user')
+      .where('matricula.matricula_valoracion_curso IS NOT NULL')
+      .andWhere('matricula.course = :courseId', { courseId })
+      .andWhere('course.company = :companyId', { companyId })
+      .select([
+        'matricula.matricula_id',
+        'matricula.matricula_valoracion_comentario',
+        'matricula.matricula_valoracion_curso',
+        'matricula.matricula_valoracion_docente',
+        'matricula.matricula_valoracion_tutor',
+        'student.estudiante_id',
+        'user.usuario_id',
+        'user.usuario_apellidos',
+        'user.usuario_correo',
+        'user.usuario_telefono',
+        'user.usuario_nombres',
+        'user.usuario_carnet_identidad',
+      ]);
+
+    if (search) {
+      query.andWhere(
+        `CONCAT_WS(' ', user.usuario_nombres, user.usuario_apellidos) LIKE :search`,
+        { search: `%${search}%` },
+      );
+    }
+
+    if (matricula_valoracion_curso) {
+      query.andWhere(
+        'matricula.matricula_valoracion_curso = :matricula_valoracion_curso',
+        { matricula_valoracion_curso },
+      );
+    }
+
+    if (matricula_valoracion_docente) {
+      query.andWhere(
+        'matricula.matricula_valoracion_docente = :matricula_valoracion_docente',
+        { matricula_valoracion_docente },
+      );
+    }
+
+    if (matricula_valoracion_tutor) {
+      query.andWhere(
+        'matricula.matricula_valoracion_tutor = :matricula_valoracion_tutor',
+        { matricula_valoracion_tutor },
+      );
+    }
+
+    // Paginación solo si no es descarga total
+    if (!downloadAll) {
+      query.skip((page - 1) * limit).take(limit);
+    }
+    const [reviews, total] = await query.getManyAndCount();
     return { total, reviews };
   }
 
@@ -217,12 +250,16 @@ export class ReviewsService {
     return buffer;
   }
 
-  async exportCourseReviews(companyId: number, courseId: number) {
+  async exportCourseReviews(
+    companyId: number,
+    courseId: number,
+    dto: FindCourseReviewDto,
+  ) {
     const summary = await this.findCourseSummary(companyId, courseId);
     const { total, reviews } = await this.findCourseReviews(
       companyId,
       courseId,
-      {},
+      dto,
       true,
     );
 

@@ -78,12 +78,14 @@ export class ReviewsController {
   async exportCourseReviews(
     @Param('company', CompanyValidationPipe) company: string,
     @Param('courseId', ParseIntPipe) courseId: number,
+    @Query() dto: FindCourseReviewDto,
     @Res() res: Response,
   ) {
     const companyId = companyNameToId(company);
     const buffer = await this.reviewsService.exportCourseReviews(
       companyId,
       courseId,
+      dto,
     );
     res.setHeader(
       'Content-Type',
