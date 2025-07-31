@@ -1,4 +1,4 @@
-import { IsString, IsInt, IsIn, Length } from 'class-validator';
+import { IsString, IsInt, IsIn } from 'class-validator';
 
 export class CreateAchievementDto {
   @IsString()

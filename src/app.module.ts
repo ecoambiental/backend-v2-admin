@@ -8,13 +8,12 @@ import { CoursesModule } from './admin/courses/courses.module';
 import { EvaluationAttemptsModule } from './admin/evaluation-attempts/evaluation-attempts.module';
 import { EvaluationModule } from './admin/evaluation/evaluation.module';
 import { ReviewsModule } from './admin/reviews/reviews.module';
-import { AchievementsModule } from './achievements/achievements.module';
+import { AchievementsModule } from './admin/achievements/achievements.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync(databaseConfig),
-    AchievementDetailsModule,
     AchievementsModule,
     AuthModule,
     CouponsModule,
