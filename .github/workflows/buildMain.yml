@@ -24,6 +24,7 @@ jobs:
             git pull
             source /root/.nvm/nvm.sh  # Carga NVM
             nvm use 21.4.0
+            rm -rf node_modules package-lock.json
             npm install
             npm run build
             pm2 restart --update-env backv2admin
