@@ -13,8 +13,10 @@ import { CompanyValidationPipe } from 'src/common/pipes/company-validation.pipe'
 import { companyNameToId } from 'src/common/utils';
 import {
   CreateAchievementDto,
+  CreateDetailDto,
   FindAchievementsDto,
   UpdateAchievementDto,
+  UpdateDetailDto,
 } from './dto';
 
 @Controller(':company/achievements')
@@ -49,6 +51,32 @@ export class AchievementsController {
     return this.achievementsService.updateAchievement(
       companyId,
       achievementId,
+      dto,
+    );
+  }
+
+  @Post(':achievementId/details')
+  createDetail(
+    @Param('company', CompanyValidationPipe) company: string,
+    @Param('achievementId', ParseIntPipe) achievementId: number,
+    @Body() dto: CreateDetailDto,
+  ) {
+    const companyId = companyNameToId(company);
+    return this.achievementsService.createDetail(companyId, achievementId, dto);
+  }
+
+  @Patch(':achievementId/details/:detailId')
+  updateDetail(
+    @Param('company', CompanyValidationPipe) company: string,
+    @Param('achievementId', ParseIntPipe) achievementId: number,
+    @Param('detailId', ParseIntPipe) detailId: number,
+    @Body() dto: UpdateDetailDto,
+  ) {
+    const companyId = companyNameToId(company);
+    return this.achievementsService.updateDetail(
+      companyId,
+      achievementId,
+      detailId,
       dto,
     );
   }

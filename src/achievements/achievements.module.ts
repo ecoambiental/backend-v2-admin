@@ -2,14 +2,19 @@ import { Module } from '@nestjs/common';
 import { AchievementsService } from './achievements.service';
 import { AchievementsController } from './achievements.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Achievement, Teacher, Tutor } from 'ingepro-entities';
+import {
+  Achievement,
+  AchievementDetail,
+  Teacher,
+  Tutor,
+} from 'ingepro-entities';
 import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   controllers: [AchievementsController],
   providers: [AchievementsService],
   imports: [
-    TypeOrmModule.forFeature([Achievement, Teacher, Tutor]),
+    TypeOrmModule.forFeature([Achievement, AchievementDetail, Teacher, Tutor]),
     AuthModule,
   ],
 })
