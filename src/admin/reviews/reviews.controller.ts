@@ -5,13 +5,19 @@ import {
   ParseIntPipe,
   Query,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { FindCourseReviewDto, FindCoursesReviewDto } from './dto';
 import { CompanyValidationPipe } from 'src/common/pipes/company-validation.pipe';
 import { companyNameToId } from 'src/common/utils';
 import { Response } from 'express';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import { SameCompanyGuard } from 'src/common/guards';
 
+@ApiBearerAuth()
+@UseGuards(AuthGuard(), SameCompanyGuard)
 @Controller(':company/reviews/courses')
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
