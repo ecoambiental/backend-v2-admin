@@ -9,7 +9,6 @@ import { EvaluationAttemptsModule } from './admin/evaluation-attempts/evaluation
 import { EvaluationModule } from './admin/evaluation/evaluation.module';
 import { ReviewsModule } from './admin/reviews/reviews.module';
 import { AchievementsModule } from './achievements/achievements.module';
-import { AchievementDetailsModule } from './achievement-details/achievement-details.module';
 
 @Module({
   imports: [
