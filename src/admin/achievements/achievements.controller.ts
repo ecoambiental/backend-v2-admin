@@ -1,12 +1,14 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { AchievementsService } from './achievements.service';
 import { CompanyValidationPipe } from 'src/common/pipes/company-validation.pipe';
@@ -18,7 +20,15 @@ import {
   UpdateAchievementDto,
   UpdateDetailDto,
 } from './dto';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard, SameCompanyGuard } from 'src/common/guards';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { Rol } from 'ingepro-entities/dist/entities/enum/user.enum';
 
+@ApiBearerAuth()
+@Roles(Rol.Administrador, Rol.SubAdministrador)
+@UseGuards(AuthGuard(), RolesGuard, SameCompanyGuard)
 @Controller(':company/achievements')
 export class AchievementsController {
   constructor(private readonly achievementsService: AchievementsService) {}
@@ -55,6 +65,15 @@ export class AchievementsController {
     );
   }
 
+  @Delete(':achievementId')
+  deleteAchievement(
+    @Param('company', CompanyValidationPipe) company: string,
+    @Param('achievementId', ParseIntPipe) achievementId: number,
+  ) {
+    const companyId = companyNameToId(company);
+    return this.achievementsService.deleteAchievement(companyId, achievementId);
+  }
+
   @Post(':achievementId/details')
   createDetail(
     @Param('company', CompanyValidationPipe) company: string,
@@ -78,6 +97,20 @@ export class AchievementsController {
       achievementId,
       detailId,
       dto,
+    );
+  }
+
+  @Delete(':achievementId/details/:detailId')
+  deleteDetail(
+    @Param('company', CompanyValidationPipe) company: string,
+    @Param('achievementId', ParseIntPipe) achievementId: number,
+    @Param('detailId', ParseIntPipe) detailId: number,
+  ) {
+    const companyId = companyNameToId(company);
+    return this.achievementsService.deleteDetail(
+      companyId,
+      achievementId,
+      detailId,
     );
   }
 }

@@ -141,6 +141,17 @@ export class AchievementsService {
     return achievement;
   }
 
+  async deleteAchievement(companyId: number, achievementId: number) {
+    const achievement = await this.findAchievement(companyId, achievementId);
+    await this.detailRepository.delete({
+      achievement: { logro_id: achievementId },
+    });
+    await this.achievementRepository.remove(achievement);
+    return {
+      message: `Logro ${achievementId} y sus detalles fueron eliminados correctamente`,
+    };
+  }
+
   async createDetail(
     companyId: number,
     achievementId: number,
@@ -178,5 +189,28 @@ export class AchievementsService {
     }
     detail.logro_detalle_descripcion = logro_detalle_descripcion;
     return await this.detailRepository.save(detail);
+  }
+
+  async deleteDetail(
+    companyId: number,
+    achievementId: number,
+    detailId: number,
+  ) {
+    await this.findAchievement(companyId, achievementId);
+    const detail = await this.detailRepository.findOne({
+      where: {
+        logro_detalle_id: detailId,
+        achievement: {
+          logro_id: achievementId,
+        },
+      },
+    });
+    if (!detail) {
+      throw new NotFoundException(
+        `Detalle con ID ${detailId} no encontrado para el logro ${achievementId}`,
+      );
+    }
+    await this.detailRepository.remove(detail);
+    return { message: `Detalle ${detailId} eliminado correctamente` };
   }
 }
